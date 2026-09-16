@@ -1,0 +1,21 @@
+# Données locales et secrets
+data/
+*.sqlite3*
+*.db
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Copies de partage et anciennes versions
+*.zip
+partage-tristan-*/
+index.avant-*.html
+
+# Fichiers générés
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+*.log

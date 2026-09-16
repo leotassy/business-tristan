@@ -1,0 +1,52 @@
+[
+  {
+    "number": "1",
+    "title": "Montre Rolex Submariner",
+    "description": "Montre bracelet automatique en acier."
+  },
+  {
+    "number": "2",
+    "title": "Vase en porcelaine",
+    "description": "Vase décoratif en porcelaine, XIXe siècle."
+  },
+  {
+    "number": "3",
+    "title": "Tableau — École française",
+    "description": "Huile sur toile représentant un paysage."
+  },
+  {
+    "number": "4",
+    "title": "Sculpture en bronze",
+    "description": "Sculpture signée, bronze à patine brune."
+  },
+  {
+    "number": "5",
+    "title": "Fauteuil Art déco",
+    "description": "Fauteuil en bois et tissu, vers 1930."
+  },
+  {
+    "number": "5 bis",
+    "title": "Lampe de bureau",
+    "description": "Lampe en métal chromé."
+  },
+  {
+    "number": "5 ter",
+    "title": "Miroir ancien",
+    "description": "Miroir en bois doré."
+  },
+  {
+    "number": "6",
+    "title": "Sac Hermès",
+    "description": "Sac en cuir avec accessoires."
+  },
+  {
+    "number": "7",
+    "title": "Service en argent",
+    "description": "Ensemble de pièces d'orfèvrerie."
+  },
+  {
+    "number": "8",
+    "title": "Appareil photographique Leica",
+    "description": "Appareil télémétrique avec objectif."
+  }
+]

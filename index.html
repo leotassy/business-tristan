@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Console de vente</title>
+
+  <style>
+    :root {
+      --bg: #f2f2ef;
+      --panel: #ffffff;
+      --text: #151515;
+      --muted: #777772;
+      --border: #deded8;
+
+      --green: #176b4d;
+      --green-bg: #e8f3ee;
+
+      --red: #b83e3e;
+      --red-bg: #faeaea;
+
+      --blue: #183f73;
+      --blue-bg: #eaf0f7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Helvetica,
+        Arial,
+        sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: auto;
+      padding: 22px;
+    }
+
+    /* HEADER */
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 22px;
+    }
+
+    .sale-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .connection-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* LAYOUT */
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+    }
+
+    /* LOT */
+
+    .lot-panel {
+      overflow: hidden;
+    }
+
+    .lot-navigation {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+
+      padding: 16px 18px;
+
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lot-navigation button {
+      border: 0;
+      background: transparent;
+
+      font-weight: 600;
+      color: var(--muted);
+
+      padding: 10px;
+    }
+
+    .lot-navigation button:last-child {
+      text-align: right;
+    }
+
+    .lot-counter {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .lot-content {
+      padding: 24px;
+    }
+
+    .lot-info {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 20px;
+      align-items: center;
+
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lot-image {
+      width: 110px;
+      height: 110px;
+
+      border-radius: 14px;
+      background: #e7e7e1;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 36px;
+    }
+
+    .lot-number {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .lot-title {
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: -0.8px;
+      margin-bottom: 8px;
+    }
+
+    .lot-description {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* PRICE */
+
+    .price-section {
+      padding-top: 30px;
+    }
+
+    .section-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1px;
+
+      margin-bottom: 10px;
+    }
+
+    .current-price {
+      font-size: 52px;
+      font-weight: 650;
+      letter-spacing: -2px;
+
+      margin-bottom: 26px;
+    }
+
+    .price-input-wrapper {
+      background: var(--bg);
+      border-radius: 14px;
+
+      padding: 18px;
+
+      margin-bottom: 18px;
+    }
+
+    .price-input {
+      width: 100%;
+
+      border: 0;
+      outline: none;
+
+      background: transparent;
+
+      text-align: right;
+
+      font-size: 38px;
+      font-weight: 600;
+
+      color: var(--text);
+    }
+
+    .price-input::placeholder {
+      color: #b6b6b0;
+    }
+
+    /* KEYPAD */
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .key {
+      min-height: 68px;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      background: #fafaf8;
+
+      font-size: 24px;
+      font-weight: 550;
+    }
+
+    .key:active {
+      transform: scale(0.98);
+    }
+
+    .key.secondary {
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .validate-button {
+      width: 100%;
+
+      margin-top: 12px;
+
+      min-height: 70px;
+
+      border: 0;
+      border-radius: 13px;
+
+      background: var(--text);
+      color: white;
+
+      font-weight: 650;
+      font-size: 18px;
+    }
+
+    /* SIDE PANEL */
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .side-panel {
+      padding: 22px;
+    }
+
+    .orders-count {
+      font-size: 40px;
+      font-weight: 650;
+      letter-spacing: -1px;
+    }
+
+    .orders-subtext {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .status-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+
+      margin-top: 20px;
+    }
+
+    .status-button {
+      min-height: 60px;
+      border-radius: 12px;
+
+      font-weight: 650;
+
+      border: 0;
+    }
+
+    .sold {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .passed {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    /* HISTORY */
+
+    .history {
+      margin-top: 18px;
+    }
+
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+
+      padding: 12px 0;
+
+      border-bottom: 1px solid var(--border);
+
+      font-size: 14px;
+    }
+
+    .history-row:last-child {
+      border-bottom: 0;
+    }
+
+    .history-time {
+      color: var(--muted);
+    }
+
+    .empty-history {
+      color: var(--muted);
+
+      font-size: 14px;
+      line-height: 1.5;
+
+      margin-top: 18px;
+    }
+
+    /* TABLET */
+
+    @media (max-width: 850px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 12px;
+      }
+
+      .lot-info {
+        grid-template-columns: 80px 1fr;
+      }
+
+      .lot-image {
+        width: 80px;
+        height: 80px;
+      }
+
+      .lot-title {
+        font-size: 21px;
+      }
+
+      .current-price {
+        font-size: 44px;
+      }
+
+      .side {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* V0.1 : lisibilité et cibles tactiles */
+    :root { --muted: #62625d; }
+    button, select { touch-action: manipulation; }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid #183f73; outline-offset: 3px; }
+    button:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+    .notice, .hint { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .notice { margin: 0 0 16px; }
+    #feedback { min-height: 28px; font-size: 15px; color: var(--blue); margin-bottom: 8px; }
+    .lot-tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    select { min-height:44px; max-width:100%; background:white; border:1px solid var(--border); border-radius:8px; padding:8px; font:inherit; }
+    .badge { border-radius:6px; padding:8px 12px; background:var(--blue-bg); font-weight:600; }
+    .badge[data-status="sold"] { background:var(--green-bg); color:var(--green); }
+    .badge[data-status="passed"] { background:var(--red-bg); color:var(--red); }
+    .auto-next { display:flex; align-items:center; gap:10px; line-height:1.5; margin:18px 0; font-size:14px; }
+    .auto-next input { width:22px; height:22px; flex-shrink:0; }
+    .utility { width:100%; min-height:48px; padding:10px; border:1px solid var(--border); border-radius:10px; background:white; color:var(--text); }
+    .history { max-height:290px; overflow:auto; }
+    .history-row { gap:16px; line-height:1.5; }
+    .history-time { flex-shrink:0; font-variant-numeric:tabular-nums; }
+    .section-label, .lot-number { font-size:14px; }
+    .current-price, .price-input { font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+    .layout { grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr); }
+    .lot-info { grid-template-columns:80px minmax(0,1fr); padding-bottom:16px; }
+    .lot-image { width:80px; height:80px; }
+    .lot-content { padding:20px; }
+    .price-section { padding-top:18px; }
+    .current-price { margin-bottom:16px; }
+    .key { min-height:56px; }
+    .validate-button { min-height:56px; }
+    @media (max-width:850px) { .layout { grid-template-columns:minmax(0,1fr); } .side { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:600px) { .side { grid-template-columns:minmax(0,1fr); } .topbar { align-items:flex-start; gap:12px; flex-wrap:wrap; } .lot-content { padding:14px; } .lot-navigation { padding:8px; } .lot-info { gap:12px; } }
+    .quick-bids { margin-bottom:22px; }
+    .bid-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:10px; }
+    .bid-step { min-height:82px; padding:12px 4px; border:1px solid var(--blue); border-radius:12px; background:var(--blue-bg); color:var(--blue); }
+    .bid-step strong { display:block; font-size:24px; }
+    .bid-step span { display:block; font-size:14px; margin-top:6px; overflow-wrap:anywhere; }
+    .bid-step:active:not(:disabled) { background:#d6e3f3; }
+    #sharedOrders { padding:20px; margin:20px -6px; border:2px solid #deded8; border-radius:14px; background:#f7f8fa; }
+    #sharedOrders.available { border-color:#183f73; background:#eaf0f7; }
+    #proposal { font-size:clamp(20px,2.3vw,30px); line-height:1.35; }
+    #defend { min-height:64px; background:#183f73; color:white; border:0; }
+    .connection { flex-wrap:wrap; }
+    @media(min-width:851px) { .layout { grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr); } }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <div class="topbar">
+
+      <div class="sale-name">
+        Console des ordres · V0.2.1 — Ajouts
+      </div>
+
+      <div class="connection">
+        <span id="saveState">Sauvegarde locale</span>
+      </div>
+
+    </div>
+
+
+    <p class="notice">Vente de démonstration · Prix saisi manuellement · Non connecté à Interencheres</p>
+    <div id="feedback" role="status" aria-live="polite"></div>
+    <div class="layout">
+
+      <!-- COLONNE PRINCIPALE -->
+
+      <section class="panel lot-panel">
+
+        <div class="lot-navigation">
+
+          <button id="previous" onclick="previousLot()">
+            ← Précédent
+          </button>
+
+          <div
+            class="lot-counter"
+            id="lotCounter">
+          </div>
+
+          <button id="next" onclick="nextLot()">
+            Suivant →
+          </button>
+
+        </div>
+
+
+        <div class="lot-content">
+          <div class="lot-tools"><label for="lotSelect">Aller au lot</label><select id="lotSelect" onchange="selectLot(this.value)"></select><span id="lotStatus" class="badge"></span></div>
+
+          <div class="lot-info">
+
+            <div
+              class="lot-image"
+              id="lotImage">
+              🖼
+            </div>
+
+            <div>
+
+              <div
+                class="lot-number"
+                id="lotNumber">
+              </div>
+
+              <div
+                class="lot-title"
+                id="lotTitle">
+              </div>
+
+              <div
+                class="lot-description"
+                id="lotDescription">
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="price-section">
+
+            <div class="section-label">
+              Prix actuel salle / live
+            </div>
+
+            <div
+              class="current-price"
+              id="currentPrice">
+              0 €
+            </div>
+
+
+            <section class="quick-bids" aria-label="Augmenter le prix">
+              <div class="section-label">Enchère suivante</div>
+              <div id="bidSteps" class="bid-steps"></div>
+              <button id="customPrice" class="utility" onclick="focusCustomPrice()">Autre montant</button>
+              <p id="stepsHint" class="hint"></p>
+            </section>
+            <div class="section-label" id="entryLabel">
+              Prix initial
+            </div>
+
+            <select id="entryMode" aria-label="Mode de saisie" onchange="clearPrice()" style="margin-bottom:12px"><option value="add">Montant à ajouter</option><option value="total">Corriger le prix total</option></select>
+            <div class="price-input-wrapper">
+
+              <input
+                aria-label="Nouveau prix en euros" id="priceInput"
+                class="price-input"
+                placeholder="0 €"
+                readonly
+              />
+
+            </div>
+
+
+            <p id="pricePreview" class="hint" aria-live="polite"></p>
+            <div class="keypad">
+
+              <button class="key" onclick="typeNumber(1)">1</button>
+              <button class="key" onclick="typeNumber(2)">2</button>
+              <button class="key" onclick="typeNumber(3)">3</button>
+
+              <button class="key" onclick="typeNumber(4)">4</button>
+              <button class="key" onclick="typeNumber(5)">5</button>
+              <button class="key" onclick="typeNumber(6)">6</button>
+
+              <button class="key" onclick="typeNumber(7)">7</button>
+              <button class="key" onclick="typeNumber(8)">8</button>
+              <button class="key" onclick="typeNumber(9)">9</button>
+
+              <button
+                class="key secondary"
+                onclick="clearPrice()">
+                Effacer
+              </button>
+
+              <button class="key" onclick="typeNumber(0)">0</button>
+
+              <button
+                class="key secondary"
+                onclick="deleteNumber()">
+                ←
+              </button>
+
+            </div>
+
+
+            <button
+              id="validate" class="validate-button"
+              onclick="validatePrice()">
+              Valider le prix
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- COLONNE DROITE -->
+
+      <aside class="side">
+
+        <section class="panel side-panel">
+
+          <div class="section-label">
+            Ordres enregistrés
+          </div>
+
+          <div
+            class="orders-count"
+            id="ordersCount">
+            0
+          </div>
+
+          <div class="orders-subtext">
+            pour ce lot
+          </div>
+
+
+          <p class="hint">Aucun ordre ajouté automatiquement.</p>
+          <section id="sharedOrders" hidden><label class="auto-next"><input id="autoStep" type="checkbox" checked> Adapter le pas au prix actuel</label><label for="defendStep">Pas pour défendre un ordre (€)</label><input id="defendStep" type="number" min="1" max="99999999" step="1" value="10" style="width:100%;min-height:44px;margin-top:8px"><p id="proposal" role="status">Vérification des ordres…</p><button id="defend" class="utility" disabled>Enchère annoncée</button><p class="hint">Les boutons de hausse habituels enregistrent une enchère de la salle ou du live. Ce bouton enregistre celle d’un ordre.</p></section><div class="status-buttons">
+
+            <button
+              id="sold" class="status-button sold"
+              onclick="markSold()">
+              Adjugé
+            </button>
+
+            <button
+              id="passed" class="status-button passed"
+              onclick="markPassed()">
+              Passé
+            </button>
+
+          </div>
+
+          <label class="auto-next"><input id="autoNext" type="checkbox" checked> Passer au lot suivant après clôture</label>
+          <button id="undo" class="utility" onclick="undoLast()">Corriger la dernière action</button>
+        </section>
+
+
+        <section class="panel side-panel">
+
+          <div class="section-label">
+            Journal
+          </div>
+
+          <div
+            class="history"
+            id="history">
+          </div>
+
+        </section>
+
+        <section class="panel side-panel"><button class="utility" onclick="exportSession()">Exporter la session JSON</button><p class="hint">Sauvegarde dans ce navigateur uniquement. Démonstration sans données clients.</p><p class="hint">Clavier : chiffres, Entrée pour valider, Retour arrière pour corriger, Échap pour effacer.</p></section>
+      </aside>
+
+    </div>
+
+  </div>
+
+
+  <script src="network.js"></script>
+  <script>
+
+    /*
+    ============================================================
+    DONNÉES DE TEST
+    ============================================================
+    Pour l'instant, tout est stocké dans le navigateur.
+    Plus tard, ces données viendront de notre base de données.
+    */
+
+    const lots = [
+
+      {
+        number: "1",
+        title: "Montre Rolex Submariner",
+        description: "Montre bracelet automatique en acier.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "2",
+        title: "Vase en porcelaine",
+        description: "Vase décoratif en porcelaine, XIXe siècle.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "3",
+        title: "Tableau — École française",
+        description: "Huile sur toile représentant un paysage.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "4",
+        title: "Sculpture en bronze",
+        description: "Sculpture signée, bronze à patine brune.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "5",
+        title: "Fauteuil Art déco",
+        description: "Fauteuil en bois et tissu, vers 1930.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "5 bis",
+        title: "Lampe de bureau",
+        description: "Lampe en métal chromé.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "5 ter",
+        title: "Miroir ancien",
+        description: "Miroir en bois doré.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "6",
+        title: "Sac Hermès",
+        description: "Sac en cuir avec accessoires.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "7",
+        title: "Service en argent",
+        description: "Ensemble de pièces d'orfèvrerie.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      },
+
+      {
+        number: "8",
+        title: "Appareil photographique Leica",
+        description: "Appareil télémétrique avec objectif.",
+        price: 0,
+        orders: 0,
+        status: "upcoming",
+        history: []
+      }
+
+    ];
+
+
+    // État local de démonstration. Aucun plafond client ni service distant.
+    const STORAGE_KEY = 'auction-console-v01';
+    const $ = id => document.getElementById(id);
+    let currentLotIndex = 0, typedPrice = '', lastAction = null, storageBlocked = false;
+    const labels = { upcoming: 'À venir', active: 'En cours', sold: 'Adjugé', passed: 'Passé' };
+    const formatPrice = number => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:0}).format(number);
+    const notify = message => { $('feedback').textContent = message; };
+    function save() {
+      if (storageBlocked) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({version:1, lots, currentLotIndex, autoNext:$('autoNext').checked}));
+        $('saveState').textContent = 'Enregistré sur cet appareil';
+      } catch (_) { $('saveState').textContent = 'Sauvegarde impossible — exportez la session'; }
+    }
+    function restore() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data.version !== 1 || !Array.isArray(data.lots) || data.lots.length !== lots.length || !Number.isInteger(data.currentLotIndex) || !lots[data.currentLotIndex]) throw Error();
+        data.lots.forEach((lot,i) => {
+          if (lot.number !== lots[i].number || !Number.isInteger(lot.price) || lot.price < 0 || lot.price > 99999999 || !Object.hasOwn(labels,lot.status) || !Array.isArray(lot.history) || !lot.history.every(e => typeof e.message === 'string' && typeof e.time === 'string')) throw Error();
+        });
+        data.lots.forEach((lot,i) => Object.assign(lots[i], {price:lot.price,status:lot.status,history:lot.history}));
+        currentLotIndex = data.currentLotIndex;
+        $('autoNext').checked = data.autoNext !== false;
+      } catch (_) {
+        storageBlocked = true;
+        $('saveState').textContent = 'Sauvegarde inaccessible — exportez votre essai';
+        notify('La sauvegarde précédente ne peut pas être chargée. Elle est conservée sans écrasement.');
+      }
+    }
+    function renderLot() {
+      const lot = lots[currentLotIndex], closed = ['sold','passed'].includes(lot.status);
+      $('lotCounter').textContent = `${currentLotIndex+1} / ${lots.length}`;
+      $('lotNumber').textContent = `LOT ${lot.number}`;
+      $('lotTitle').textContent = lot.title;
+      $('lotDescription').textContent = lot.description;
+      $('currentPrice').textContent = formatPrice(lot.price);
+      $('ordersCount').textContent = lot.orders;
+      $('lotStatus').textContent = labels[lot.status];
+      $('lotStatus').dataset.status = lot.status;
+      $('lotSelect').replaceChildren();
+      lots.forEach((item,i) => { const option = document.createElement('option'); option.value=i; option.textContent=`Lot ${item.number} · ${labels[item.status]}`; $('lotSelect').appendChild(option); });
+      $('lotSelect').value = currentLotIndex;
+      $('previous').disabled = currentLotIndex === 0;
+      $('next').disabled = currentLotIndex === lots.length-1;
+      document.querySelectorAll('.key').forEach(button => button.disabled = closed);
+      $('sold').disabled = closed || lot.price <= 0;
+      $('passed').disabled = closed;
+      $('undo').disabled = !lastAction;
+      updateInput(); renderHistory();
+    }
+    function selectLot(index) {
+      index = Number(index);
+      if (!Number.isInteger(index) || !lots[index] || index === currentLotIndex) return;
+      if (typedPrice && !confirm('Le prix saisi n’est pas validé. L’abandonner et changer de lot ?')) { $('lotSelect').value=currentLotIndex; return; }
+      typedPrice=''; $('entryMode').value='add'; currentLotIndex=index; renderLot(); save();
+    }
+    function previousLot() { selectLot(currentLotIndex-1); }
+    function nextLot() { selectLot(currentLotIndex+1); }
+    function typeNumber(number) {
+      if (['sold','passed'].includes(lots[currentLotIndex].status) || !/^\d$/.test(String(number))) return;
+      if (typedPrice.length >= 8) { notify('Le prix est limité à 8 chiffres.'); return; }
+      typedPrice += number; updateInput();
+    }
+    function deleteNumber() { typedPrice=typedPrice.slice(0,-1); updateInput(); }
+    function clearPrice() { typedPrice=''; updateInput(); }
+    function enteredPrice() {
+      const lot=lots[currentLotIndex];
+      return Number(typedPrice) + (lot.price>0 && $('entryMode').value!=='total' ? lot.price : 0);
+    }
+    function updateInput() {
+      const lot=lots[currentLotIndex], adding=lot.price>0 && $('entryMode').value!=='total';
+      $('entryMode').hidden=lot.price===0;
+      $('entryLabel').textContent=lot.price===0 ? 'Prix initial' : adding ? 'Montant à ajouter' : 'Corriger le prix total';
+      $('priceInput').setAttribute('aria-label',$('entryLabel').textContent+' en euros');
+      $('priceInput').value=typedPrice ? (adding ? '+ ' : '')+formatPrice(Number(typedPrice)) : '';
+      const target=enteredPrice(),valid=Boolean(typedPrice)&&Number(typedPrice)>0&&Number.isInteger(target)&&target<=99999999;
+      $('pricePreview').textContent=typedPrice ? (target>99999999 ? 'Le prix total dépasse la limite de 99 999 999 €.' : adding ? `${formatPrice(lot.price)} + ${formatPrice(Number(typedPrice))} = ${formatPrice(target)}` : `Prix après validation : ${formatPrice(target)}`) : '';
+      $('validate').textContent=adding ? (valid ? `Ajouter ${formatPrice(Number(typedPrice))}` : 'Valider l’ajout') : 'Valider le prix';
+      $('validate').disabled=!valid || ['sold','passed'].includes(lot.status);
+      renderSteps();
+    }
+    // Propositions provisoires : les montants restent libres à chaque enchère.
+    function getBidSteps(price) {
+      if (price <= 100) return [5,10,20];
+      if (price < 300) return [10,20,50];
+      if (price < 500) return [20,50,100];
+      if (price < 1000) return [50,100,200];
+      return [100,200,500];
+    }
+    function renderSteps() {
+      const lot=lots[currentLotIndex], closed=['sold','passed'].includes(lot.status);
+      const container=$('bidSteps'); container.replaceChildren();
+      getBidSteps(lot.price).forEach(step => {
+        const button=document.createElement('button'), amount=document.createElement('strong'), result=document.createElement('span');
+        button.className='bid-step'; button.type='button';
+        button.disabled=closed || lot.price<=0 || Boolean(typedPrice) || lot.price+step>99999999;
+        amount.textContent=`+${formatPrice(step)}`; result.textContent=`→ ${formatPrice(lot.price+step)}`;
+        button.append(amount,result);
+        button.addEventListener('click',()=>increasePrice(step)); container.appendChild(button);
+      });
+      $('customPrice').disabled=closed;
+      $('stepsHint').textContent=closed ? 'Lot clôturé : corrigez la dernière action si nécessaire.' : lot.price<=0 ? 'Saisissez et validez le prix initial pour activer les hausses.' : typedPrice ? 'Validez ou effacez la saisie pour réactiver les hausses.' : 'Un clic enregistre le prix. Les propositions évoluent avec le montant.';
+    }
+    function increasePrice(step) {
+      const lot=lots[currentLotIndex];
+      if (typedPrice || lot.price<=0 || ['sold','passed'].includes(lot.status) || !getBidSteps(lot.price).includes(step) || lot.price+step>99999999) return;
+      $('entryMode').value='add'; typedPrice=String(step); validatePrice();
+    }
+    function focusCustomPrice() {
+      if (['sold','passed'].includes(lots[currentLotIndex].status)) return;
+      $('entryMode').value='add'; updateInput();
+      $('priceInput').scrollIntoView({block:'center',behavior:'smooth'});
+      $('priceInput').focus({preventScroll:true});
+    }
+    function record(message, before) {
+      const lot=lots[currentLotIndex];
+      lastAction={index:currentLotIndex, price:before.price, status:before.status, message};
+      lot.history.unshift({time:new Date().toISOString(), message});
+    }
+    function validatePrice() {
+      const lot=lots[currentLotIndex], price=enteredPrice();
+      if (!typedPrice || !Number.isInteger(price) || price<=0 || price>99999999 || ['sold','passed'].includes(lot.status)) return;
+      if (price===lot.price) { clearPrice(); notify('Ce prix est déjà enregistré.'); return; }
+      if (price<lot.price && !confirm(`Corriger le prix de ${formatPrice(lot.price)} à ${formatPrice(price)} ?`)) return;
+      const before={...lot}; lot.price=price; lot.status='active';
+      record(`${price<before.price ? 'Correction du prix' : 'Prix'} : ${formatPrice(before.price)} → ${formatPrice(price)}`,before);
+      typedPrice=''; $('entryMode').value='add'; renderLot(); save(); notify(`Lot ${lot.number} : prix enregistré à ${formatPrice(price)}.`);
+    }
+    function closeLot(status) {
+      const lot=lots[currentLotIndex];
+      if (['sold','passed'].includes(lot.status) || (status==='sold' && lot.price<=0)) return;
+      if (typedPrice) { notify('Validez ou effacez le prix saisi avant de clôturer ce lot.'); return; }
+      const before={...lot}; lot.status=status;
+      record(status==='sold' ? `Adjugé à ${formatPrice(lot.price)}` : 'Lot passé',before);
+      const message=`Lot ${lot.number} ${status==='sold' ? 'adjugé' : 'passé'}.`;
+      if ($('autoNext').checked && currentLotIndex<lots.length-1) currentLotIndex++;
+      renderLot(); save(); notify(message + (lots.every(l => ['sold','passed'].includes(l.status)) ? ' Tous les lots sont clôturés.' : ''));
+    }
+    function markSold() { closeLot('sold'); }
+    function markPassed() { closeLot('passed'); }
+    function undoLast() {
+      if (!lastAction) return;
+      if (typedPrice) { notify('Validez ou effacez le prix saisi avant une correction.'); return; }
+      const action=lastAction, lot=lots[action.index];
+      if (!confirm(`Annuler « ${action.message} » sur le lot ${lot.number} ? La correction restera dans le journal.`)) return;
+      lot.price=action.price; lot.status=action.status;
+      lot.history.unshift({time:new Date().toISOString(),message:`Correction : annulation de « ${action.message} »`});
+      currentLotIndex=action.index; lastAction=null; renderLot(); save(); notify(`Lot ${lot.number} : dernière action corrigée.`);
+    }
+    function renderHistory() {
+      const container=$('history'); container.replaceChildren();
+      const history=lots[currentLotIndex].history;
+      if (!history.length) { container.textContent='Aucun événement pour ce lot.'; return; }
+      history.forEach(event => {
+        const row=document.createElement('div'), message=document.createElement('span'), time=document.createElement('time');
+        row.className='history-row'; message.textContent=event.message; time.className='history-time';
+        const date=new Date(event.time); time.textContent=Number.isNaN(date.getTime()) ? event.time : date.toLocaleTimeString('fr-FR');
+        row.append(message,time); container.appendChild(row);
+      });
+    }
+    function exportSession() {
+      const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),lots,currentLotIndex,autoNext:$('autoNext').checked},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob), link=document.createElement('a'); link.href=url; link.download='vente-demo-'+new Date().toISOString().slice(0,10)+'.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+      notify('Session exportée. Le prix en cours de saisie doit être validé pour figurer dans l’export.');
+    }
+    document.addEventListener('keydown',event => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.target.closest('button,select,input:not([readonly]),textarea')) return;
+      if (/^\d$/.test(event.key)) { event.preventDefault(); typeNumber(event.key); }
+      else if (event.key==='Enter') { event.preventDefault(); validatePrice(); }
+      else if (event.key==='Backspace') { event.preventDefault(); deleteNumber(); }
+      else if (event.key==='Escape') { event.preventDefault(); clearPrice(); }
+    });
+    window.addEventListener('beforeunload',event => { if (typedPrice) { event.preventDefault(); event.returnValue=''; } });
+    $('autoNext').addEventListener('change',save);
+    if (location.protocol === 'file:') restore(); renderLot();
+  </script>
+
+<script src="shared.js?v=addition-2"></script>
+</body>
+</html>
