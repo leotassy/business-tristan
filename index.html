@@ -452,9 +452,9 @@
   </style>
 </head>
 
-<body>
+<body><nav style="padding:12px 24px"><a href="/admin">Administration · Ventes et archives</a></nav>
 
-  <div class="app">
+  <div class="app" inert>
 
     <div class="topbar">
 
@@ -463,7 +463,7 @@
       </div>
 
       <div class="connection">
-        <span id="saveState">Sauvegarde locale</span>
+        <span id="saveState">Connexion au serveur…</span>
       </div>
 
     </div>
@@ -665,7 +665,7 @@
 
         </section>
 
-        <section class="panel side-panel"><button class="utility" onclick="exportSession()">Exporter la session JSON</button><p class="hint">Sauvegarde dans ce navigateur uniquement. Démonstration sans données clients.</p><p class="hint">Clavier : chiffres, Entrée pour valider, Retour arrière pour corriger, Échap pour effacer.</p></section>
+        <section class="panel side-panel"><button class="utility" id="resetSale" onclick="resetSale()">Réinitialiser la démonstration</button><p><a href="/admin">Administration · Ventes et archives ↗</a></p><p class="hint">Efface les ordres, coordonnées, prix et historiques de la vente en cours. Retour au lot 1 à 0 €. Une sauvegarde est conservée sur le serveur.</p><p class="hint">Session enregistrée sur le serveur. Démonstration sans données clients.</p><p class="hint">Clavier : chiffres, Entrée pour valider, Retour arrière pour corriger, Échap pour effacer.</p></section>
       </aside>
 
     </div>
@@ -789,38 +789,12 @@
     ];
 
 
-    // État local de démonstration. Aucun plafond client ni service distant.
-    const STORAGE_KEY = 'auction-console-v01';
+    // SQLite est l’unique source de vérité ; ce script gère l’affichage et la saisie.
     const $ = id => document.getElementById(id);
-    let currentLotIndex = 0, typedPrice = '', lastAction = null, storageBlocked = false;
+    let currentLotIndex = 0, typedPrice = '', connected = false, busy = false;
     const labels = { upcoming: 'À venir', active: 'En cours', sold: 'Adjugé', passed: 'Passé' };
     const formatPrice = number => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:0}).format(number);
     const notify = message => { $('feedback').textContent = message; };
-    function save() {
-      if (storageBlocked) return;
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({version:1, lots, currentLotIndex, autoNext:$('autoNext').checked}));
-        $('saveState').textContent = 'Enregistré sur cet appareil';
-      } catch (_) { $('saveState').textContent = 'Sauvegarde impossible — exportez la session'; }
-    }
-    function restore() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.version !== 1 || !Array.isArray(data.lots) || data.lots.length !== lots.length || !Number.isInteger(data.currentLotIndex) || !lots[data.currentLotIndex]) throw Error();
-        data.lots.forEach((lot,i) => {
-          if (lot.number !== lots[i].number || !Number.isInteger(lot.price) || lot.price < 0 || lot.price > 99999999 || !Object.hasOwn(labels,lot.status) || !Array.isArray(lot.history) || !lot.history.every(e => typeof e.message === 'string' && typeof e.time === 'string')) throw Error();
-        });
-        data.lots.forEach((lot,i) => Object.assign(lots[i], {price:lot.price,status:lot.status,history:lot.history}));
-        currentLotIndex = data.currentLotIndex;
-        $('autoNext').checked = data.autoNext !== false;
-      } catch (_) {
-        storageBlocked = true;
-        $('saveState').textContent = 'Sauvegarde inaccessible — exportez votre essai';
-        notify('La sauvegarde précédente ne peut pas être chargée. Elle est conservée sans écrasement.');
-      }
-    }
     function renderLot() {
       const lot = lots[currentLotIndex], closed = ['sold','passed'].includes(lot.status);
       $('lotCounter').textContent = `${currentLotIndex+1} / ${lots.length}`;
@@ -839,18 +813,21 @@
       document.querySelectorAll('.key').forEach(button => button.disabled = closed);
       $('sold').disabled = closed || lot.price <= 0;
       $('passed').disabled = closed;
-      $('undo').disabled = !lastAction;
-      updateInput(); renderHistory();
+      $('undo').disabled = !lot.canUndo;
+      $('lotSelect').disabled = busy || !connected;
+      updateInput(); renderHistory(); recommend();
     }
     function selectLot(index) {
+      if (!connected || busy) return;
       index = Number(index);
       if (!Number.isInteger(index) || !lots[index] || index === currentLotIndex) return;
       if (typedPrice && !confirm('Le prix saisi n’est pas validé. L’abandonner et changer de lot ?')) { $('lotSelect').value=currentLotIndex; return; }
-      typedPrice=''; $('entryMode').value='add'; currentLotIndex=index; renderLot(); save();
+      typedPrice=''; $('entryMode').value='add'; currentLotIndex=index; renderLot();
     }
     function previousLot() { selectLot(currentLotIndex-1); }
     function nextLot() { selectLot(currentLotIndex+1); }
     function typeNumber(number) {
+      if (!connected || busy) return;
       if (['sold','passed'].includes(lots[currentLotIndex].status) || !/^\d$/.test(String(number))) return;
       if (typedPrice.length >= 8) { notify('Le prix est limité à 8 chiffres.'); return; }
       typedPrice += number; updateInput();
@@ -871,10 +848,12 @@
       $('pricePreview').textContent=typedPrice ? (target>99999999 ? 'Le prix total dépasse la limite de 99 999 999 €.' : adding ? `${formatPrice(lot.price)} + ${formatPrice(Number(typedPrice))} = ${formatPrice(target)}` : `Prix après validation : ${formatPrice(target)}`) : '';
       $('validate').textContent=adding ? (valid ? `Ajouter ${formatPrice(Number(typedPrice))}` : 'Valider l’ajout') : 'Valider le prix';
       $('validate').disabled=!valid || ['sold','passed'].includes(lot.status);
-      renderSteps();
+      renderSteps(); lock();
     }
     // Propositions provisoires : les montants restent libres à chaque enchère.
+    let configuredSteps = null;
     function getBidSteps(price) {
+      if(configuredSteps){const row=configuredSteps.find(r=>r.below===null||price<r.below);return row.buttons;}
       if (price <= 100) return [5,10,20];
       if (price < 300) return [10,20,50];
       if (price < 500) return [20,50,100];
@@ -895,52 +874,14 @@
       $('customPrice').disabled=closed;
       $('stepsHint').textContent=closed ? 'Lot clôturé : corrigez la dernière action si nécessaire.' : lot.price<=0 ? 'Saisissez et validez le prix initial pour activer les hausses.' : typedPrice ? 'Validez ou effacez la saisie pour réactiver les hausses.' : 'Un clic enregistre le prix. Les propositions évoluent avec le montant.';
     }
-    function increasePrice(step) {
-      const lot=lots[currentLotIndex];
-      if (typedPrice || lot.price<=0 || ['sold','passed'].includes(lot.status) || !getBidSteps(lot.price).includes(step) || lot.price+step>99999999) return;
-      $('entryMode').value='add'; typedPrice=String(step); validatePrice();
-    }
     function focusCustomPrice() {
       if (['sold','passed'].includes(lots[currentLotIndex].status)) return;
       $('entryMode').value='add'; updateInput();
       $('priceInput').scrollIntoView({block:'center',behavior:'smooth'});
       $('priceInput').focus({preventScroll:true});
     }
-    function record(message, before) {
-      const lot=lots[currentLotIndex];
-      lastAction={index:currentLotIndex, price:before.price, status:before.status, message};
-      lot.history.unshift({time:new Date().toISOString(), message});
-    }
-    function validatePrice() {
-      const lot=lots[currentLotIndex], price=enteredPrice();
-      if (!typedPrice || !Number.isInteger(price) || price<=0 || price>99999999 || ['sold','passed'].includes(lot.status)) return;
-      if (price===lot.price) { clearPrice(); notify('Ce prix est déjà enregistré.'); return; }
-      if (price<lot.price && !confirm(`Corriger le prix de ${formatPrice(lot.price)} à ${formatPrice(price)} ?`)) return;
-      const before={...lot}; lot.price=price; lot.status='active';
-      record(`${price<before.price ? 'Correction du prix' : 'Prix'} : ${formatPrice(before.price)} → ${formatPrice(price)}`,before);
-      typedPrice=''; $('entryMode').value='add'; renderLot(); save(); notify(`Lot ${lot.number} : prix enregistré à ${formatPrice(price)}.`);
-    }
-    function closeLot(status) {
-      const lot=lots[currentLotIndex];
-      if (['sold','passed'].includes(lot.status) || (status==='sold' && lot.price<=0)) return;
-      if (typedPrice) { notify('Validez ou effacez le prix saisi avant de clôturer ce lot.'); return; }
-      const before={...lot}; lot.status=status;
-      record(status==='sold' ? `Adjugé à ${formatPrice(lot.price)}` : 'Lot passé',before);
-      const message=`Lot ${lot.number} ${status==='sold' ? 'adjugé' : 'passé'}.`;
-      if ($('autoNext').checked && currentLotIndex<lots.length-1) currentLotIndex++;
-      renderLot(); save(); notify(message + (lots.every(l => ['sold','passed'].includes(l.status)) ? ' Tous les lots sont clôturés.' : ''));
-    }
     function markSold() { closeLot('sold'); }
     function markPassed() { closeLot('passed'); }
-    function undoLast() {
-      if (!lastAction) return;
-      if (typedPrice) { notify('Validez ou effacez le prix saisi avant une correction.'); return; }
-      const action=lastAction, lot=lots[action.index];
-      if (!confirm(`Annuler « ${action.message} » sur le lot ${lot.number} ? La correction restera dans le journal.`)) return;
-      lot.price=action.price; lot.status=action.status;
-      lot.history.unshift({time:new Date().toISOString(),message:`Correction : annulation de « ${action.message} »`});
-      currentLotIndex=action.index; lastAction=null; renderLot(); save(); notify(`Lot ${lot.number} : dernière action corrigée.`);
-    }
     function renderHistory() {
       const container=$('history'); container.replaceChildren();
       const history=lots[currentLotIndex].history;
@@ -952,12 +893,8 @@
         row.append(message,time); container.appendChild(row);
       });
     }
-    function exportSession() {
-      const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),lots,currentLotIndex,autoNext:$('autoNext').checked},null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob), link=document.createElement('a'); link.href=url; link.download='vente-demo-'+new Date().toISOString().slice(0,10)+'.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-      notify('Session exportée. Le prix en cours de saisie doit être validé pour figurer dans l’export.');
-    }
     document.addEventListener('keydown',event => {
+      if (!connected || busy) return;
       if (event.ctrlKey || event.metaKey || event.altKey || event.target.closest('button,select,input:not([readonly]),textarea')) return;
       if (/^\d$/.test(event.key)) { event.preventDefault(); typeNumber(event.key); }
       else if (event.key==='Enter') { event.preventDefault(); validatePrice(); }
@@ -965,10 +902,9 @@
       else if (event.key==='Escape') { event.preventDefault(); clearPrice(); }
     });
     window.addEventListener('beforeunload',event => { if (typedPrice) { event.preventDefault(); event.returnValue=''; } });
-    $('autoNext').addEventListener('change',save);
-    if (location.protocol === 'file:') restore(); renderLot();
+    // Initialisation et actions serveur dans shared.js uniquement.
   </script>
 
-<script src="shared.js?v=addition-2"></script>
+<script src="shared.js?v=multi-sale-1"></script>
 </body>
 </html>

@@ -1,41 +1,63 @@
-# Prototype partagé local
+# Ordres d’achat confidentiels — Léo et Tristan
 
-Démarrer depuis ce dossier : `python3 server.py`.
+## Démarrage
+Python 3.9 ou supérieur, sans dépendance Python externe.
+Depuis ce dossier : `python3 server.py`.
+Ne pas ouvrir les fichiers HTML directement : le serveur est indispensable.
 
-- Console : http://127.0.0.1:8765/
 - Acheteur : http://127.0.0.1:8765/acheteur
+- Secrétaire : http://127.0.0.1:8765/
+- Administration : http://127.0.0.1:8765/admin
 
-Le serveur doit rester ouvert. SQLite conserve la session dans `data/auction.sqlite3`.
-L'ancienne session du navigateur n'est pas importée : la vente part avec les mêmes lots et sans prix ni ordres fictifs. L'ancien mode fichier reste disponible, indépendant de la base.
+Les deux codes distincts sont affichés dans le terminal au démarrage. Ils changent à chaque lancement, sauf configuration via AUCTION_PIN et AUCTION_ADMIN_PIN. Ne pas les inscrire dans le code ni les partager avec les acheteurs.
+Le serveur reste actif tant que le terminal reste ouvert. Ctrl+C l’arrête.
+SQLite crée automatiquement data/auction.sqlite3 ; les données persistent entre les lancements.
+AUCTION_DB permet de choisir une autre base, AUCTION_PORT un autre port.
 
-La page acheteur confirme un prénom, un lot et un plafond entier en euros, hors frais. Une clé unique empêche qu'une nouvelle tentative du même envoi crée un doublon. La console consulte les données toutes les deux secondes. Les réponses de la console ne contiennent pas les plafonds.
+## Essais sur tablettes
+Sur un Wi-Fi de confiance, démarrer avec `python3 server.py --lan`.
+Définir AUCTION_LAN_IP avec l’adresse locale réelle de l’ordinateur si la détection échoue.
+Utiliser cette adresse avec le port 8765 dans les navigateurs des tablettes.
+L’adresse 127.0.0.1 ne fonctionne que sur l’ordinateur qui héberge le serveur.
+Le site n’est pas publié sur Internet. Tester avec des données fictives.
 
-Le pas de défense est automatique par défaut (10 € sous 200 €, 20 € sous 300 €, 50 € sous 1 000 €, 100 € sous 2 000 €, puis 200 €) et peut être saisi manuellement. Ce barème est provisoire. La proposition est limitée au plafond : 1 950 € avec un pas de 100 € et un plafond de 2 000 € propose 2 000 €. Seuls une référence anonyme et le montant à défendre apparaissent. Le prénom, le plafond et l’indicateur de plafond atteint ne sont pas transmis dans les propositions. Avec un prix de 80 € et un ordre à 100 €, le serveur propose 90 €. La secrétaire valide après annonce. L'ordre ne peut pas surenchérir contre lui-même. Une nouvelle hausse salle/live rend une nouvelle proposition possible. Plusieurs ordres éligibles bloquent la proposition tant que leur règle d'arbitrage n'est pas définie. Ceci n'est pas encore un moteur complet de vente.
+## Fonctionnement
+- Acheteur : coordonnées communes, pays et indicatif téléphonique, adresse structurée, plusieurs lots et plafonds. Les pays courants sont proposés ; « Autre pays » permet de saisir un autre indicatif. Le code postal est facultatif selon le pays.
+- Étapes séparées : saisie, récapitulatif et consentement acheteur, puis validation administrateur de la caution remise en personne. Aucun paiement ni document n’est collecté.
+- Le dépôt groupé est atomique : tout est enregistré ou rien. Réessayer le même dépôt ne crée pas de doublon. Après rechargement d’une page dont l’envoi était incertain, vérifier auprès de l’administrateur avant de refaire le dépôt.
+- Secrétaire : prix initial total, puis hausses ajoutées au prix courant, correction explicite du total, défense des ordres après annonce, adjudication, lot passé, annulation de la dernière action. Aucun nom, contact ni plafond transmis à cette console.
+- À plafonds égaux, priorité au premier ordre enregistré. Les plafonds différents restent soumis à arbitrage ; ne pas inventer la règle sans accord du commissaire-priseur.
+- Administrateur : connexion distincte, recherche d’acheteurs, coordonnées, plafonds, résultats, archives, création de ventes et réglage des pas.
+- Une clôture archive les lots, ordres, historiques et paramètres et bloque les actions. Une nouvelle vente reprend le catalogue, sans prix ni ordres actifs. Les archives restent consultables.
+- Le bouton de remise à zéro de démonstration archive aussi la vente et réalise une sauvegarde SQLite préalable.
+- Les pas existants sont provisoires. Les seuils sont exclusifs et la dernière tranche n’a pas de limite. Le pas automatique doit figurer parmi les boutons.
+- L’acheteur est effacé après 5 minutes d’inactivité ou 20 secondes après le reçu. L’administration se déconnecte après 5 minutes d’inactivité. Les requêtes expirent après 12 secondes.
+- Utiliser l’administration sur un appareil réservé et se déconnecter avant de le confier à un acheteur.
 
-Par défaut le serveur écoute sur le Mac. Le mode `--lan` active le réseau local. La console et ses API nécessitent le code secrétaire affiché au démarrage (session de 12 heures, code renouvelé au redémarrage). La page acheteur reste accessible sans compte. HTTP est non chiffré : essais fictifs sur un Wi-Fi de confiance uniquement, pas de publication Internet. Ce code n’est pas une authentification métier complète. Le prénom n'identifie pas légalement un acheteur. Le journal local est modifiable par le propriétaire du Mac ; ce n'est pas une preuve infalsifiable. Pas de connexion Interencheres. Les photos, authentification, annulation d'ordres et accès multi-appareils restent à réaliser.
+## Fichiers
+server.py : serveur HTTP, authentification et actions.
+features.py : migrations, ventes, archives, dépôts multiples et paramètres.
+buyer.html / buyer.js : accueil acheteurs.
+index.html / shared.js : console secrétaire.
+admin.html / admin.js : administration.
+app.css : styles acheteur et administrateur.
+login.html : connexion secrétaire.
+network.js : gestion des délais réseau.
+lots.json : catalogue de démonstration.
+reset_demo.py : ancien utilitaire limité à data/demo-ami.sqlite3 ; préférer la clôture via l’administration (cet utilitaire ne crée pas d’archive consultable).
 
-Tests : `python3 -B test_shared.py` (base temporaire indépendante des essais).
+## Vérification
+`python3 -m unittest test_shared.py test_features.py`
+`node test_console.cjs` (Node.js uniquement pour ce test).
+Les tests utilisent des bases temporaires séparées. Aucun ordre simulé n’est injecté dans la base de travail.
 
+## À confirmer / limites
+Attendre le catalogue exporté (format réel, photos, titres, descriptions) et les vrais pas du commissaire-priseur.
+Aucune intégration Interencheres, aucun email automatique.
+Le catalogue secrétaire reste également présent dans index.html : l’import futur devra unifier cette source.
+Les archives et sauvegardes sont locales et non chiffrées par l’application. Elles ne remplacent pas une sauvegarde externe.
+Avant production : hébergement HTTPS, comptes personnels et droits, durées de conservation, sauvegardes externes, supervision et essais de charge.
+Un code partagé ne permet pas d’identifier individuellement l’administrateur. Le journal n’est pas une preuve infalsifiable.
+La copie transmise à Tristan n’inclut aucune base, archive de vente ou clé d’accès. Ses changements ne se synchronisent pas automatiquement avec ceux de Léo.
 
-## Essai sur deux tablettes — V0.2
-
-Connecter les deux tablettes au même Wi-Fi que le Mac. Garder le Mac éveillé et le serveur actif.
-Adresse de cet essai : `192.168.1.90` (peut changer selon le réseau).
-
-Démarrage réseau pour cette adresse : `AUCTION_LAN_IP=192.168.1.90 python3 server.py --lan`.
-
-- Tablette accueil : http://192.168.1.90:8765/acheteur
-- Tablette secrétaire : http://192.168.1.90:8765/ (code affiché dans le terminal)
-
-La confirmation acheteur s'efface après 20 secondes ou via « Terminer · Acheteur suivant ». Aucune enchère ne part vers Interencheres. Prix et hausses saisis par la secrétaire ; enchères des ordres confirmées après annonce.
-Si le serveur redémarre, le nouveau code est nécessaire, mais les données SQLite restent conservées.
-Les règles de concurrence entre plusieurs ordres doivent encore être validées ; la proposition est suspendue lorsque plusieurs ordres sont éligibles.
-
-
-## Partage temporaire avec un ami
-
-Une démonstration séparée utilise `data/demo-ami.sqlite3`, avec uniquement les lots fictifs au départ. La base de travail `data/auction.sqlite3` reste indépendante.
-Le serveur de démonstration utilise le port 8766, avec `AUCTION_DB`, `AUCTION_PORT` et `AUCTION_PUBLIC_ORIGIN`. Un tunnel Cloudflare fournit une adresse HTTPS temporaire et remplace l’en-tête Host par `127.0.0.1:8766`. Les formulaires n’acceptent que l’origine publique configurée. Le cookie secrétaire utilise Secure sur cette origine.
-Le code secrétaire change au redémarrage et s’affiche dans le terminal. Ne pas diffuser ce code avec le lien acheteur destiné à tous.
-Le Mac doit rester éveillé, connecté à Internet, avec le serveur et le tunnel actifs. Le lien n’est pas un hébergement permanent et change si le tunnel redémarre. Aucune garantie de disponibilité. Utiliser uniquement des données fictives.
-Les appels réseau sont limités à 12 secondes pour afficher une erreur au lieu d’attendre indéfiniment.
+Test du formulaire et des reprises après coupure : `node test_buyer.cjs`. Après un envoi incertain, le retour aux modifications est bloqué pour permettre de réessayer le même dépôt sans doublon.
