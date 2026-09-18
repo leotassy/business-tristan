@@ -1,8 +1,19 @@
 // Actions serveur uniquement. Aucune mutation locale des prix ou du journal.
   let proposal=null, generation=0, saleId=null, refreshGeneration=0;
+  const clerkToken = (typeof URLSearchParams !== 'undefined' && typeof location !== 'undefined' && location.search ? new URLSearchParams(location.search).get('token') : null) ||
+                     (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clerk_token') : null);
+  if (clerkToken && typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('clerk_token', clerkToken);
+    if (typeof history !== 'undefined' && typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined' && new URLSearchParams(location.search).has('token')) {
+      history.replaceState(null, '', location.pathname);
+    }
+  }
   async function api(path,data) {
-    const response=await fetch(path,data ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)} : {});
-    const value=await response.json(); if(response.status===401){location.replace('/connexion');throw Error('Session expirée.')} if(!response.ok)throw Error(value.error||'Serveur indisponible.'); return value;
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clerk_token') : null;
+    const headers = {'Content-Type':'application/json'};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const response=await fetch(path,data ? {method:'POST',headers,body:JSON.stringify(data)} : {headers});
+    const value=await response.json(); if(response.status===401){if(typeof sessionStorage!=='undefined')sessionStorage.removeItem('clerk_token');location.replace('/connexion');throw Error('Session expirée.')} if(!response.ok)throw Error(value.error||'Serveur indisponible.'); return value;
   }
   function lock() {
     document.querySelector('.app').inert=busy||!connected;

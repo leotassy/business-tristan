@@ -1,0 +1,6 @@
+{
+  "name": "Console de vente aux enchères",
+  "description": "Console de vente aux enchères et gestion confidentielle des ordres d'achat",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

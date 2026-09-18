@@ -1,0 +1,16 @@
+{
+  "name": "business-tristan",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'Build complete'",
+    "lint": "node --check server.js test_console.cjs test_buyer.cjs test_server.cjs",
+    "start": "node server.js",
+    "test": "node test_console.cjs && node test_buyer.cjs && node test_server.cjs"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2"
+  }
+}
